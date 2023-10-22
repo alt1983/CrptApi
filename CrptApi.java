@@ -31,18 +31,6 @@ public class CrptApi {
         } else {
             throw new IllegalArgumentException("Не допустмое количество подключений");
         }
-        Runnable task = () -> {
-            while(true) {
-                try {
-                    Thread.sleep(getTimeout());
-                    count = requestLimit;
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        Thread thread = new Thread(task);
-        thread.start();
     }
 
     //Метод - Создание документа для ввода в оборот товара, произведенного в РФ
@@ -104,13 +92,11 @@ public class CrptApi {
     private void httpRequest(String json, String signature) {
                 count--;
         try {
-            boolean busy = true;
-            while(busy) {
                 if (count < 0) {
                     Thread.sleep(getTimeout());
-                        count--;
-                }else busy = false;
-            }
+                    count = requestLimit;
+                    count--;
+                }
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
             HttpPost post = new HttpPost(URL);
             StringEntity entity = new StringEntity(json);
@@ -144,41 +130,42 @@ public class CrptApi {
     //Класс с описанием параметров документа
     public static class Document {
         @Getter
-        @Setter
         private String description;
+
         @Getter
-        @Setter
         private final String participantInn;
+
         @Getter
-        @Setter
         private final String docId;
+
         @Getter
-        @Setter
         private final String docStatus;
+
         @Getter
-        @Setter
         private final String docType;
+
         @Getter
         @Setter
         private String importRequest;
+
         @Getter
-        @Setter
         private final String ownerInn;
+
         @Getter
-        @Setter
         private final String producerInn;
+
         @Getter
-        @Setter
         private final String productionDate;
+
         @Getter
-        @Setter
         private final String productionType;
+
         @Getter
-        @Setter
         private final String regDate;
+
         @Getter
-        @Setter
         private final String regNumber;
+
         @Getter
         @Setter
         private List<Product> products;
@@ -203,27 +190,35 @@ public class CrptApi {
             @Getter
             @Setter
             private CertificateDocument certificateDocument;
+
             @Getter
             @Setter
             private String certificateDocumentDate;
+
             @Getter
             @Setter
             private String certificateDocumentNumber;
+
             @Getter
             @Setter
             private String ownerInn;
+
             @Getter
             @Setter
             private String producerInn;
+
             @Getter
             @Setter
             private String productionDate;
+
             @Getter
             @Setter
             private String tnvedCode;
+
             @Getter
             @Setter
             private String uitCode;
+
             @Getter
             @Setter
             private String uituCode;
