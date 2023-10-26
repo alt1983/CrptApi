@@ -1,5 +1,4 @@
-import lombok.Getter;
-import lombok.Setter;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpResponseException;
@@ -17,6 +16,7 @@ public class CrptApi {
     private int requestLimit;
     private final TimeUnit timeUnit;
     private static volatile int count;
+    private static volatile boolean watcher;
 
     private final String URL = "http://<server-name>[:server-port]/api/v2/{extension}/ rollout?omsId={omsId}";
     private final String CLIENT_TOKEN = "clientToken";
@@ -25,6 +25,7 @@ public class CrptApi {
     //Конструктор в виде количества запросов в определенный интервал времени
     public CrptApi(TimeUnit timeUnit, int requestLimit) {
         this.timeUnit = timeUnit;
+        this.watcher = true;
         if (requestLimit >= 0) {
             this.requestLimit = requestLimit;
             count = requestLimit;
@@ -35,6 +36,23 @@ public class CrptApi {
 
     //Метод - Создание документа для ввода в оборот товара, произведенного в РФ
     public void createDocRus(Document document, String signature) {
+
+        if(watcher == true){
+            watcher = false;
+            Runnable task = () -> {
+                while(true) {
+                    try {
+                        Thread.sleep(getTimeout());
+                        this.count = this.requestLimit;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            Thread thread = new Thread(task);
+            thread.start();
+        }
+
         httpRequest(getDoc(document, signature).toString(), signature);
     }
 
@@ -90,13 +108,15 @@ public class CrptApi {
     }
 
     private void httpRequest(String json, String signature) {
-                count--;
+        count--;
         try {
+            boolean busy = true;
+            while(busy) {
                 if (count < 0) {
                     Thread.sleep(getTimeout());
-                    count = requestLimit;
                     count--;
-                }
+                }else busy = false;
+            }
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
             HttpPost post = new HttpPost(URL);
             StringEntity entity = new StringEntity(json);
@@ -111,6 +131,7 @@ public class CrptApi {
                 throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
             }
             httpClient.close();
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -129,45 +150,83 @@ public class CrptApi {
 
     //Класс с описанием параметров документа
     public static class Document {
-        @Getter
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getParticipantInn() {
+            return participantInn;
+        }
+
+        public String getDocId() {
+            return docId;
+        }
+
+        public String getDocStatus() {
+            return docStatus;
+        }
+
+        public String getDocType() {
+            return docType;
+        }
+
+        public String getImportRequest() {
+            return importRequest;
+        }
+
+        public String getOwnerInn() {
+            return ownerInn;
+        }
+
+        public String getProducerInn() {
+            return producerInn;
+        }
+
+        public String getProductionDate() {
+            return productionDate;
+        }
+
+        public String getProductionType() {
+            return productionType;
+        }
+
+        public String getRegDate() {
+            return regDate;
+        }
+
+        public String getRegNumber() {
+            return regNumber;
+        }
+
+        public List<Product> getProducts() {
+            return products;
+        }
+
+        public void setDescription(String description){
+            this.description = description;
+        }
+
+        public void setImportRequest(String importRequest) {
+            this.importRequest = importRequest;
+        }
+
+        public void setProducts(List<Product> products) {
+            this.products = products;
+        }
+
         private String description;
-
-        @Getter
         private final String participantInn;
-
-        @Getter
         private final String docId;
-
-        @Getter
         private final String docStatus;
-
-        @Getter
         private final String docType;
-
-        @Getter
-        @Setter
         private String importRequest;
-
-        @Getter
         private final String ownerInn;
-
-        @Getter
         private final String producerInn;
-
-        @Getter
         private final String productionDate;
-
-        @Getter
         private final String productionType;
-
-        @Getter
         private final String regDate;
-
-        @Getter
         private final String regNumber;
-
-        @Getter
-        @Setter
         private List<Product> products;
 
         public Document(String participantInn, String docId, String docStatus,
@@ -187,41 +246,87 @@ public class CrptApi {
         }
 
         public static class Product {
-            @Getter
-            @Setter
             private CertificateDocument certificateDocument;
-
-            @Getter
-            @Setter
             private String certificateDocumentDate;
-
-            @Getter
-            @Setter
             private String certificateDocumentNumber;
-
-            @Getter
-            @Setter
             private String ownerInn;
-
-            @Getter
-            @Setter
             private String producerInn;
-
-            @Getter
-            @Setter
             private String productionDate;
-
-            @Getter
-            @Setter
             private String tnvedCode;
-
-            @Getter
-            @Setter
             private String uitCode;
-
-            @Getter
-            @Setter
             private String uituCode;
+
+            public CertificateDocument getCertificateDocument() {
+                return certificateDocument;
+            }
+
+            public void setCertificateDocument(CertificateDocument certificateDocument) {
+                this.certificateDocument = certificateDocument;
+            }
+
+            public void setCertificateDocumentDate(String certificateDocumentDate) {
+                this.certificateDocumentDate = certificateDocumentDate;
+            }
+
+            public void setCertificateDocumentNumber(String certificateDocumentNumber) {
+                this.certificateDocumentNumber = certificateDocumentNumber;
+            }
+
+            public void setOwnerInn(String ownerInn) {
+                this.ownerInn = ownerInn;
+            }
+
+            public void setProducerInn(String producerInn) {
+                this.producerInn = producerInn;
+            }
+
+            public void setProductionDate(String productionDate) {
+                this.productionDate = productionDate;
+            }
+
+            public void setTnvedCode(String tnvedCode) {
+                this.tnvedCode = tnvedCode;
+            }
+
+            public void setUitCode(String uitCode) {
+                this.uitCode = uitCode;
+            }
+
+            public void setUituCode(String uituCode) {
+                this.uituCode = uituCode;
+            }
+
+            public String getCertificateDocumentDate() {
+                return certificateDocumentDate;
+            }
+
+            public String getCertificateDocumentNumber() {
+                return certificateDocumentNumber;
+            }
+
+            public String getOwnerInn() {
+                return ownerInn;
+            }
+
+            public String getProducerInn() {
+                return producerInn;
+            }
+
+            public String getProductionDate() {
+                return productionDate;
+            }
+
+            public String getTnvedCode() {
+                return tnvedCode;
+            }
+
+            public String getUitCode() {
+                return uitCode;
+            }
+
+            public String getUituCode() {
+                return uituCode;
+            }
 
             public enum CertificateDocument {
                 CONFORMITY_CERTIFICATE, CONFORMITY_DECLARATION
